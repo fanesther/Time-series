@@ -1,0 +1,124 @@
+---
+title: "stat505 group project-forecast of the water discharge from the Bow river at Calgary"
+author: "Fanmiao Sun 30025789, Yifei An 30063879, Leigh Murray 30075588"
+output: html_document
+---
+background and motivations: We collected the data from the National hydro logical survey, and we choose AB05BH004 station which located on the bow river at Calgary. we are meanly concern about the water discharge in the river which is the volume flow through the channel, it is an indicator of climate change, we want to forecast and monitor water discharge for water resource management and mitigating water related disasters such as drought or flooding. We collected data within 7days, and data was being collected every 5 minutes, we use the 6days data to forecast the water discharge for the 7th day.  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+data <- read.csv("/Users/15878/OneDrive/Desktop/stat505/real_time_data-1.csv")
+library(tseries)
+library(forecast)
+
+```
+
+
+Raw data, showing no seasonality nor stationary
+```{r}
+head(data[c(1,2,4)])
+
+x <- data[1:2017,c(2,4)]
+x$Date <- as.POSIXlt(x$Date)
+plot(x)
+
+y <- as.vector(t(x[1:1728,c(2)]))
+z<- as.vector(t(x[1729:2017,c(2)]))
+
+```
+From the ACF and PACF and residual plots,we choose to difference the function twice so the general residuals looks better. Based on what we observed from the plots we decided to moving on with two models.
+
+```{r}
+mytsplot<-function(z, ind = 1, lag = 288, d = 2)
+{
+	if(ind == 1) {
+		par(mfcol = c(3, 2))
+		ts.plot(z)
+		abline(mean(z), 0)
+		acf(z)
+		pacf(z)
+		x <- diff(z)
+		ts.plot(x)
+		acf(x)
+		pacf(x)
+		y <- diff(x,lag=lag)
+		x1<-diff(y,lag=lag)
+		ts.plot(y)
+		acf(y)
+		pacf(y)
+		ts.plot(x1)
+		acf(x1)
+		pacf(x1)
+	             }
+	else {
+		par(mfcol = c(3, 2))
+		ts.plot(z)
+		abline(mean(z), 0)
+		acf(z, lag.max = lag)
+		pacf(z, lag.max = lag)
+		x <- diff(z, lag = d)
+		x1<-diff(x,lag=d)
+		ts.plot(x)
+		acf(x, lag.max = lag)
+		pacf(x, lag.max = lag)
+		ts.plot(x1)
+		acf(x1, lag.max = lag)
+		pacf(x1, lag.max = lag)
+	     }
+par(mfcol=c(1,1))
+}
+
+mytsplot(y)
+
+
+
+```
+Here, we worked on the Arima model(1,2,5)and Arima model(1,2,6), just for comparison and we can decide which one to move forward for the forecast.
+```{r}
+
+model1.fit <- arima(y,order=c(1,2,5))
+
+tsdiag(model1.fit)
+par(mfcol=c(2,1))
+pacf(residuals(model1.fit))
+qqnorm(model1.fit$residuals)
+
+
+model2.fit <- arima(y,order=c(1,2,6))
+tsdiag(model2.fit)
+pacf(residuals(model2.fit))
+qqnorm(model2.fit$residuals)
+
+
+
+```
+
+
+
+By comparing the two models we had, we can see that the Arima(1,2,6) since it has a smaller AIC
+```{r}
+arima(y,order= c(1,2,6))
+arima(y,order= c(1,2,5))
+
+```
+
+
+```{r}
+model1.cast <- forecast(model1.fit,h=288)
+plot(model1.cast,xlim=c(0,2000),ylim=c(35,75),axes=T)
+par(new=TRUE)
+plot(ts(z,frequency = 1,start=c(1728)),xlim=c(0,2000),ylim=c(35,75),axes=F,col=2)
+
+y2.cast <- forecast(datay2.fit,h=288)
+plot(y2.cast,xlim=c(0,2000),ylim=c(35,75),axes=T)
+par(new=TRUE)
+plot(ts(z,frequency = 1,start=c(1728)),xlim=c(0,2000),ylim=c(35,75),axes=F,col=2)
+
+
+```
+As we can see here the Arima(1,2,6) performs much better,the data we predicted also does fall into the range that we expected to be which is a slightly upward trend.
+temperature might be one important factors that effect the water discharge, however we are only using 7days data for this study, we don't have enough variance to do prediction over longer time scale.
+How are you thinking of Time Series Analysis now? What do you plan to do in the future?
+Fanmiao Sun: I think Time Seried Analysis are fun, and based on what we learned, the forecast within a short time are impressively accurate, maybe if I become rich in the future, I will use this knowledge to do more financial planning.
+Leigh Murray: Time series analysis is fascinating, there are so many interesting and varied uses of it. People often refer to stocks as a common use of time series, but this project felt like a good example of how it can be used in so many other ways. Tracking weather, water, monitoring climate and using the data to predict and help mitigate disasters has genuinely peaked my interest in time series.
+Yifei An: I think the Time Seried Analysis is interesting, and 
